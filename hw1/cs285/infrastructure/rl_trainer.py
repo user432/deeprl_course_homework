@@ -70,9 +70,10 @@ class RL_Trainer(object):
         ## INIT VARS
         #############
 
-        ## TODO initialize all of the TF variables (that were created by agent, etc.)
+        ## TODO initialize all of the TF variables (that were created by agent, etc.)===DONE
         ## HINT: use global_variables_initializer
-        TODO
+        init = tf.global_variables_initializer()
+        self.sess.run(init)
 
     def run_training_loop(self, n_iter, collect_policy, eval_policy,
                         initial_expertdata=None, relabel_with_expert=False,
@@ -109,19 +110,19 @@ class RL_Trainer(object):
             # collect trajectories, to be used for training
             training_returns = self.collect_training_trajectories(itr,
                                 initial_expertdata, collect_policy,
-                                self.params['batch_size']) ## TODO implement this function below
+                                self.params['batch_size']) ## TODO implement this function below===DONE
             paths, envsteps_this_batch, train_video_paths = training_returns
             self.total_envsteps += envsteps_this_batch
 
             # relabel the collected obs with actions from a provided expert policy
             if relabel_with_expert and itr>=start_relabel_with_expert:
-                paths = self.do_relabel_with_expert(expert_policy, paths) ## TODO implement this function below
+                paths = self.do_relabel_with_expert(expert_policy, paths) ## TODO implement this function below===DONE
 
             # add collected data to replay buffer
             self.agent.add_to_replay_buffer(paths)
 
             # train agent (using sampled data from replay buffer)
-            self.train_agent() ## TODO implement this function below
+            self.train_agent() ## TODO implement this function below===DONE
 
             # log/save
             if self.log_video or self.log_metrics:
@@ -149,19 +150,23 @@ class RL_Trainer(object):
             train_video_paths: paths which also contain videos for visualization purposes
         """
 
-        # TODO decide whether to load training data or use
+        # TODO decide whether to load training data or use===DONE
         # HINT: depending on if it's the first iteration or not,
             # decide whether to either
                 # load the data. In this case you can directly return as follows
                 # ``` return loaded_paths, 0, None ```
 
                 # collect data, batch_size is the number of transitions you want to collect.
+        if itr==1:
+            with open(load_initial_expertdata, 'rb') as f:
+                data = pickle.load(f)
+            return data, 0, None
 
-        # TODO collect data to be used for training
+        # TODO collect data to be used for training===DONE
         # HINT1: use sample_trajectories from utils
         # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
         print("\nCollecting data to be used for training...")
-        paths, envsteps_this_batch = TODO
+        paths, envsteps_this_batch = sample_trajectories(self.env, collect_policy, batch_size, self.params['ep_len'], render=False)
 
         # collect more rollouts with the same policy, to be saved as videos in tensorboard
         # note: here, we collect MAX_NVIDEO rollouts, each of length MAX_VIDEO_LEN
@@ -178,21 +183,25 @@ class RL_Trainer(object):
         print('\nTraining agent using sampled data from replay buffer...')
         for train_step in range(self.params['num_agent_train_steps_per_iter']):
 
-            # TODO sample some data from the data buffer
+            # TODO sample some data from the data buffer===DONE
             # HINT1: use the agent's sample function
             # HINT2: how much data = self.params['train_batch_size']
-            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = TODO
+            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.agent.sample(self.params['train_batch_size'])
 
-            # TODO use the sampled data for training
+            # TODO use the sampled data for training===DONE
             # HINT: use the agent's train function
             # HINT: print or plot the loss for debugging!
+            loss = self.agent.train(ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch)
+        return loss
 
     def do_relabel_with_expert(self, expert_policy, paths):
         print("\nRelabelling collected observations with labels from an expert policy...")
 
-        # TODO relabel collected obsevations (from our policy) with labels from an expert policy
+        # TODO relabel collected obsevations (from our policy) with labels from an expert policy===DONE
         # HINT: query the policy (using the get_action function) with paths[i]["observation"]
         # and replace paths[i]["action"] with these expert labels
+        for i in range(len(paths)):
+            paths[i]["action"] = expert_policy.get_action(paths[i]["observation"])
 
         return paths
 
